@@ -43,12 +43,17 @@ app.layout = html.Div([
     dcc.Graph(id='soil-moisture'),
 ])
 
+def filter_last_48_hours(df, time_column='timestamp'):
+    now = datetime.now()
+    return df[df[time_column] >= now - timedelta(hours=48)]
+    
 @app.callback(
     Output('sump-pump-usage', 'figure'),
     Input('interval-component', 'n_intervals')
 )
 def update_sump_pump_graph(n):
     power_df = pd.read_csv(DATA_LOG_FILE, parse_dates=['timestamp'])
+    power_df = filter_last_48_hours(power_df)
     fig = px.line(power_df, x='timestamp', y='power_watts',
                        title="Sump Pump Power Usage Over Time")
     return fig
@@ -60,6 +65,7 @@ def update_sump_pump_graph(n):
 )
 def update_rain_graph(n):
     rain_df = pd.read_csv(RAIN_LOG_FILE, parse_dates=['timestamp'])
+    rain_df = filter_last_48_hours(rain_df)
     fig = px.line(rain_df, x='timestamp',
                        y='rainfall_mm',
                        title="24-Hour Rainfall")
@@ -72,6 +78,7 @@ def update_rain_graph(n):
 )
 def update_soil_moisture_graph(n):
     rain_df = pd.read_csv(RAIN_LOG_FILE, parse_dates=['timestamp'])
+    rain_df = filter_last_48_hours(rain_df)
     fig = px.line(rain_df, x='timestamp',
                        y=['soil_moisture_0_to_1cm', 'soil_moisture_1_to_3cm', 'soil_moisture_3_to_9cm',
                           'soil_moisture_9_to_27cm', 'soil_moisture_27_to_81cm'],
