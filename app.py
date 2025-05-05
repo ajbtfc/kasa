@@ -57,9 +57,23 @@ def update_sump_pump_graph(n):
     # fig = px.line(power_df, x='timestamp', y='power_watts',
     #                    title="Sump Pump Power Usage Over Time")
         # Plot as a bar chart to show pump activation clearly
-    fig = px.bar(power_df, x='timestamp', y='power_watts',
-                 title="Sump Pump Activations (Last 48 Hours)",
-                 labels={'power_watts': 'Power (W)'})
+     # Group into 1-minute bins and sum power usage
+    binned = (
+        power_df
+        .set_index('timestamp')
+        .resample('30T')  # 1-minute bins
+        .sum()
+        .reset_index()
+    )
+
+    # Only keep rows where power > 0
+    binned = binned[binned['power_watts'] > 0]
+
+    fig = px.bar(
+        binned, x='timestamp', y='power_watts',
+        title="Sump Pump Usage (30-Min Bins - Last 48 Hours)",
+        labels={'power_watts': 'Power (W)'}
+    )
     return fig
 
 
