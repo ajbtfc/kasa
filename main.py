@@ -87,6 +87,24 @@ def get_rainfall_last_24h():
         logger.error(f"Error fetching rainfall data: {e}")
         return 0.0  # assume no rain if it fails
 
+def get_rainfall_last_7_days():
+    try:
+        url = (
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={LATITUDE}&longitude={LONGITUDE}"
+            "&daily=precipitation_sum"
+            "&past_days=7"
+            "&forecast_days=0"
+            "&timezone=auto"
+        )
+        response = requests.get(url)
+        data = response.json()
+        total_7day_rain = sum(data["daily"]["precipitation_sum"])
+        return total_7day_rain
+    except Exception as e:
+        logger.error(f"Error fetching 7-day rainfall: {e}")
+        return 0.0
+        
 def log_rain_data(timestamp, rainfall_mm, soil_0, soil_1, soil_3, soil_9, soil_27):
     file_exists = os.path.isfile(RAIN_LOG_FILE)
     with open(RAIN_LOG_FILE, mode="a", newline="") as file:
@@ -119,6 +137,17 @@ async def monitor_plug():
                 rain_last_24h, soil_0, soil_1, soil_3, soil_9, soil_27 = get_rainfall_last_24h()
                 last_rain_check_time = now
                 log_rain_data(now, rain_last_24h, soil_0, soil_1, soil_3, soil_9, soil_27)
+
+            # === Check Weekly Rainfall once per Day ===
+            # Track last weekly rain check
+            last_weekly_rain_check_time = datetime.min
+
+            # Inside monitor_plug()
+            if (now - last_weekly_rain_check_time).total_seconds() > 86400:  # once per day
+                total_rain_7d = get_rainfall_last_7_days()
+                if total_rain_7d < 38.1:  # 1.5 inches in mm
+                    send_alert(f"Lawn watering alert: only {total_rain_7d:.1f} mm rain in past 7 days.")
+                last_weekly_rain_check_time = now
             log_power_data(now, power)
 
             if power > POWER_THRESHOLD:
