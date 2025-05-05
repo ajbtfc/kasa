@@ -148,7 +148,6 @@ async def monitor_plug():
                 if total_rain_7d < 38.1:  # 1.5 inches in mm
                     send_alert(f"Lawn watering alert: only {total_rain_7d:.1f} mm rain in past 7 days.")
                 last_weekly_rain_check_time = now
-            log_power_data(now, power)
 
 
             if power > POWER_THRESHOLD:
