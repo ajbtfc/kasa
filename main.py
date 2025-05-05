@@ -150,7 +150,9 @@ async def monitor_plug():
                 last_weekly_rain_check_time = now
             log_power_data(now, power)
 
+
             if power > POWER_THRESHOLD:
+                log_power_data(now, power)
                 if not power_on_start:
                     send_alert(f"Power draw detected: {power:.2f}W")
                     power_on_start = now
@@ -173,7 +175,7 @@ async def monitor_plug():
                         alerted_no_power = True
         except Exception as e:
             logger.info(f"[{datetime.now()}] Error communicating with plug: {e}")
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
 
 if __name__ == "__main__":
     asyncio.run(monitor_plug())
