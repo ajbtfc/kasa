@@ -67,7 +67,7 @@ def update_sump_pump_graph(n):
     )
 
     # Only keep rows where power > 0
-    binned = binned[binned['power_watts'] > 0]
+    # binned = binned[binned['power_watts'] > 0]
 
     fig = px.bar(
         binned, x='timestamp', y='power_watts',
