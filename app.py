@@ -54,8 +54,12 @@ def filter_last_48_hours(df, time_column='timestamp'):
 def update_sump_pump_graph(n):
     power_df = pd.read_csv(DATA_LOG_FILE, parse_dates=['timestamp'])
     power_df = filter_last_48_hours(power_df)
-    fig = px.line(power_df, x='timestamp', y='power_watts',
-                       title="Sump Pump Power Usage Over Time")
+    # fig = px.line(power_df, x='timestamp', y='power_watts',
+    #                    title="Sump Pump Power Usage Over Time")
+        # Plot as a bar chart to show pump activation clearly
+    fig = px.bar(power_df, x='timestamp', y='power_watts',
+                 title="Sump Pump Activations (Last 48 Hours)",
+                 labels={'power_watts': 'Power (W)'})
     return fig
 
 
