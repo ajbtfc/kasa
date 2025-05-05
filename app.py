@@ -61,7 +61,7 @@ def update_sump_pump_graph(n):
     binned = (
         power_df
         .set_index('timestamp')
-        .resample('1T')  # 1-minute bins
+        .resample('10T')  # 1-minute bins
         .sum()
         .reset_index()
     )
