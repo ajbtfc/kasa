@@ -141,7 +141,7 @@ async def monitor_plug():
 
             # === Check Weekly Rainfall once per Day ===
             # Track last weekly rain check
-            last_weekly_rain_check_time = datetime.min
+            # last_weekly_rain_check_time = datetime.min
 
             # Inside monitor_plug()
             if (now - last_weekly_rain_check_time).total_seconds() > 86400:  # once per day
