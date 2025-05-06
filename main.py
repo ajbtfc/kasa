@@ -32,6 +32,7 @@ last_power_time = datetime.now()
 alerted_no_power = False
 alerted_long_power = False
 last_rain_check_time = datetime.min
+last_weekly_rain_check_time = datetime.min
 rain_last_24h = 0.0
 
 pb = Pushbullet(PUSHBULLET_API_KEY)
@@ -120,7 +121,7 @@ if not os.path.isfile(DATA_LOG_FILE):
         writer.writerow(["timestamp", "power_watts"])
 
 async def monitor_plug():
-    global power_on_start, last_power_time, alerted_no_power, alerted_long_power, rain_last_24h, last_rain_check_time
+    global power_on_start, last_power_time, alerted_no_power, alerted_long_power, rain_last_24h, last_rain_check_time, last_weekly_rain_check_time
 
     dev = await Discover.discover_single(PLUG_IP)
     await dev.update()
