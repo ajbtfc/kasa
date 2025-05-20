@@ -95,7 +95,7 @@ def get_rainfall_last_7_days():
             f"latitude={LATITUDE}&longitude={LONGITUDE}"
             "&daily=precipitation_sum"
             "&past_days=7"
-            "&forecast_days=0"
+            "&forecast_days=1"
             "&timezone=auto"
         )
         response = requests.get(url)
