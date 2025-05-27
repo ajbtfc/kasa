@@ -85,8 +85,8 @@ def update_rain_graph(n):
     rain_df = pd.read_csv(RAIN_LOG_FILE, parse_dates=['timestamp'])
     rain_df = filter_last_48_hours(rain_df)
     fig = px.line(rain_df, x='timestamp',
-                       y='rainfall_mm',
-                       title="24-Hour Rainfall")
+                  y='rainfall_mm',
+                  title="24-Hour Rainfall")
     return fig
 
 
@@ -98,11 +98,10 @@ def update_soil_moisture_graph(n):
     rain_df = pd.read_csv(RAIN_LOG_FILE, parse_dates=['timestamp'])
     rain_df = filter_last_48_hours(rain_df)
     fig = px.line(rain_df, x='timestamp',
-                       y=['soil_moisture_0_to_1cm', 'soil_moisture_1_to_3cm', 'soil_moisture_3_to_9cm',
-                          'soil_moisture_9_to_27cm', 'soil_moisture_27_to_81cm'],
-                       title="Soil Moisture at Various Depths")
+                  y=['soil_moisture_0_to_1cm', 'soil_moisture_1_to_3cm', 'soil_moisture_3_to_9cm',
+                     'soil_moisture_9_to_27cm', 'soil_moisture_27_to_81cm'],
+                  title="Soil Moisture at Various Depths")
     return fig
-
 
 
 if __name__ == '__main__':

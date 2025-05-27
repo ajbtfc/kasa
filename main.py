@@ -25,6 +25,7 @@ LOG_DIR = "logs"
 ALERT_LOG_FILE = os.path.join(LOG_DIR, "power_monitor.log")
 DATA_LOG_FILE = os.path.join(LOG_DIR, "power_data.csv")
 RAIN_LOG_FILE = os.path.join(LOG_DIR, "rain_log.csv")
+MODEL_LOG_FILE = os.path.join(LOG_DIR, "model_log.csv")
 
 # === STATE TRACKERS ===
 power_on_start = None
