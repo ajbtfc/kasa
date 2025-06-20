@@ -107,3 +107,8 @@ def update_soil_moisture_graph(n):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8050, debug=True)
+
+"""
+Add dash_table/dataTable with sprinkler data, make it editable
+Show label with tomorrows sprinkler amount
+"""
