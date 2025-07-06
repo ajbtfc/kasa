@@ -7,13 +7,17 @@ from dotenv import load_dotenv
 from pushbullet import Pushbullet
 import logging
 from logging.handlers import RotatingFileHandler
+import aiohttp
+from pyrainbird import async_client
+from pyrainbird.async_client import CreateController, AsyncRainbirdController
+import asyncio
 
 load_dotenv()
 
 LOG_DIR = "logs"
 LATITUDE = float(os.environ.get("LATITUDE"))   # Replace with your location
 LONGITUDE = float(os.environ.get("LONGITUDE"))
-DAILY_MAX_WATER = .75
+DAILY_MAX_WATER = 1.5
 PUSHBULLET_API_KEY = os.environ.get("PUSHBULLET_API_KEY")
 SPRINKLER_LOG_FILE = os.path.join(LOG_DIR, "sprinkler_log.csv")
 
@@ -42,7 +46,7 @@ def send_alert(message):
 url = (
     f"https://api.open-meteo.com/v1/forecast?"
     f"latitude={LATITUDE}&longitude={LONGITUDE}"
-    "&daily=rain_sum"
+    "&daily=precipitation_sum"
     "&past_days=7"
     "&forecast_days=14"
     "&timezone=auto"
@@ -50,7 +54,7 @@ url = (
 )
 response = requests.get(url)
 data = response.json()
-df = pd.DataFrame({"date":data['daily']['time'], "rain":data['daily']['rain_sum']})
+df = pd.DataFrame({"date":data['daily']['time'], "rain":data['daily']['precipitation_sum']})
 df['sprinkler'] = 0.0
 sprinkler_df = pd.read_csv("kasa/sprinkler_runs.csv")
 sprinkler_df['date'] = pd.to_datetime(sprinkler_df['date'])
@@ -63,7 +67,7 @@ df = df.drop(columns='amount')
 WINDOW = 7
 TARGET = 1.5
 N = len(df)
-NUM_TO_OPTIMIZE = 13
+NUM_TO_OPTIMIZE = 14
 opt_start_idx = N - NUM_TO_OPTIMIZE
 
 # Objective function: sum of squared errors over 7-day windows
@@ -105,20 +109,58 @@ print(df.tail(10))
 df['date'] = pd.to_datetime(df['date'])
 
 # Get tomorrow's date
-tomorrow = pd.Timestamp.today().normalize() + pd.Timedelta(days=1)
+tomorrow = pd.Timestamp.today().normalize() + pd.Timedelta(days=0)
 
 # Filter rows where the date part of 'date' matches tomorrow
 df_tomorrow = df[df['date'].dt.normalize() == tomorrow]
+if df_tomorrow['sprinkler'].iloc[0] + df_tomorrow['rain'].iloc[0] > 1:
+    zone_1 = df_tomorrow['sprinkler'].iloc[0] * 60
+    zone_2 = zone_1 / 3
+    zone_3 = zone_1 * 2
+    zone_4 = zone_1
 
-print(f"Sprinkler plan for {tomorrow.date()} - {df_tomorrow['sprinkler'].iloc[0]}")
-print(f"Front yard - {df_tomorrow['sprinkler'].iloc[0]*60} minutes")
-print(f"Back yard - {df_tomorrow['sprinkler'].iloc[0]*120} minutes")
-send_alert(f"""
-Sprinkler plan for {tomorrow.date()} - {df_tomorrow['sprinkler'].iloc[0]}
-Front yard - {df_tomorrow['sprinkler'].iloc[0]*60} minutes
-Back yard - {df_tomorrow['sprinkler'].iloc[0]*120} minutes
-"""
+
+    print(f"Sprinkler plan for {tomorrow.date()} - {df_tomorrow['sprinkler'].iloc[0]}")
+    print(f"Front yard - {df_tomorrow['sprinkler'].iloc[0]*60} minutes")
+    print(f"Back yard - {df_tomorrow['sprinkler'].iloc[0]*120} minutes")
+    send_alert(f"""
+    Sprinkler plan for {tomorrow.date()} - {df_tomorrow['sprinkler'].iloc[0]}
+    Front yard - {df_tomorrow['sprinkler'].iloc[0]*60} minutes
+    Back yard - {df_tomorrow['sprinkler'].iloc[0]*120} minutes
+    """
            )
+
+    # Example wrapper assuming 'controller' is your AsyncRainbirdController
+    async def run_irrigation_sequence(controller):
+        zone_minutes = {
+            1: zone_1,
+            2: zone_2,
+            3: zone_3,
+            4: zone_4,
+        }
+
+        for zone, minutes in zone_minutes.items():
+            print(f"Starting irrigation on zone {zone} for {minutes} minutes...")
+            await controller.irrigate_zone(zone, minutes)
+            await asyncio.sleep(minutes * 60)  # Wait while it irrigates
+            await controller.stop_irrigation()
+            print(f"Stopped irrigation on zone {zone}\n")
+
+
+    new_row = pd.DataFrame([{
+        'date': tomorrow,
+        'amount': df_tomorrow['sprinkler'].iloc[0]
+    }])
+
+    sprinkler_df = pd.concat([sprinkler_df, new_row], ignore_index=True)
+    sprinkler_df.to_csv("kasa/sprinkler_runs.csv", index=False)
+# async with aiohttp.ClientSession() as client:
+#     controller: AsyncRainbirdController = async_client.CreateController(
+#         client,
+#         "192.168.1.228",
+#         "AaBbCc123"
+#     )
+#     await run_irrigation_sequence(controller)
 # Read csv
 # Add row
 # Write to csv
