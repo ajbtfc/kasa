@@ -113,7 +113,7 @@ def objective(x):
             s[i] = min(x[i - opt_start_idx], DAILY_MAX_WATER - rain[i])  # Never overfill beyond 1 inch
 
     total_error = 0
-    for i in range(N - WINDOW + 1):
+    for i in range(opt_start_idx, N - WINDOW + 1):
         rain_sum = rain[i:i+WINDOW].sum()
         sprinkler_sum = s[i:i+WINDOW].sum()
         total = rain_sum + sprinkler_sum
@@ -122,10 +122,10 @@ def objective(x):
     return total_error
 
 # Initial guess: 0.1 inches per day
-x0 = np.full(NUM_TO_OPTIMIZE, 0.1)
+x0 = np.full(NUM_TO_OPTIMIZE, 0)
 
 # Bounds: between 0 and max possible fill (1 inch if no rain)
-bounds = [(0, 1)] * NUM_TO_OPTIMIZE
+bounds = [(0, DAILY_MAX_WATER)] * NUM_TO_OPTIMIZE
 
 # Run the optimization
 result = minimize(objective, x0, bounds=bounds, method='L-BFGS-B')
@@ -133,7 +133,10 @@ result = minimize(objective, x0, bounds=bounds, method='L-BFGS-B')
 # Update DataFrame with optimized values
 if result.success:
     # Reapply same logic to get final sprinkler values
-    sprinkler = np.zeros(N)
+    sprinkler = np.concatenate([
+    df['sprinkler'].values[:opt_start_idx],
+    np.zeros(N - opt_start_idx)
+])
     rain = df['rain'].values
     for i in range(opt_start_idx, N):
         if rain[i] < DAILY_MAX_WATER:
@@ -144,7 +147,7 @@ else:
 
 df['7_day_total'] = df['rain'].rolling(window=7).sum() + df['sprinkler'].rolling(window=7).sum()
 # Resulting DataFrame
-print(df.tail(10))
+print(df.head(8))
 
 # Ensure 'time' column is datetime
 df['date'] = pd.to_datetime(df['date'])
@@ -180,12 +183,21 @@ if df_tomorrow['sprinkler'].iloc[0] + df_tomorrow['rain'].iloc[0] > 1:
             4: zone_4,
         }
 
-        for zone, minutes in zone_minutes.items():
-            print(f"Starting irrigation on zone {zone} for {minutes} minutes...")
-            await controller.irrigate_zone(zone, minutes)
-            await asyncio.sleep(minutes * 60)  # Wait while it irrigates
-            await controller.stop_irrigation()
-            print(f"Stopped irrigation on zone {zone}\n")
+        try:
+            for zone, minutes in zone_minutes.items():
+                print(f"Starting irrigation on zone {zone} for {minutes} minutes...")
+                await controller.irrigate_zone(zone, minutes)
+                await asyncio.sleep(minutes * 60)  # Wait while it irrigates
+                await controller.stop_irrigation()
+                print(f"Stopped irrigation on zone {zone}\n")
+        except Exception as e:
+            print(f"⚠️ Error during irrigation: {e}")
+            try:
+                await controller.stop_irrigation()
+                print("✅ Irrigation stopped due to error.")
+            except Exception as stop_error:
+                print(f"❌ Failed to stop irrigation: {stop_error}")
+            raise  # Optional: re-raise if you want to propagate the error
 
 
     new_row = pd.DataFrame([{
@@ -197,13 +209,16 @@ if df_tomorrow['sprinkler'].iloc[0] + df_tomorrow['rain'].iloc[0] > 1:
     sprinkler_df.to_csv("sprinkler_runs.csv", index=False)
     # Define async irrigation logic
     async def main():
-        async with aiohttp.ClientSession() as client:
-            controller = async_client.CreateController(
-                client,
-                "192.168.1.228",
-                "AaBbCc123"
-            )
-            await run_irrigation_sequence(controller)
+        try:
+            async with aiohttp.ClientSession() as client:
+                controller = async_client.CreateController(
+                    client,
+                    "192.168.1.228",
+                    "AaBbCc123"
+                )
+                await run_irrigation_sequence(controller)
+        except Exception as e:
+            print(f"🚨 Top-level error: {e}")
 
     # Run it
     asyncio.run(main())
