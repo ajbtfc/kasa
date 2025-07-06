@@ -224,6 +224,8 @@ if df_tomorrow['sprinkler'].iloc[0] + df_tomorrow['rain'].iloc[0] > 1:
     asyncio.run(main())
 else:
     print(f"Water need only { df_tomorrow['sprinkler'].iloc[0] + df_tomorrow['rain'].iloc[0]} inches")
+    send_alert(
+        f"No sprinkler today. Sprinkler - {df_tomorrow['sprinkler'].iloc[0]} Rain - {df_tomorrow['rain'].iloc[0]} inches")
 
 
 #async with aiohttp.ClientSession() as client:
